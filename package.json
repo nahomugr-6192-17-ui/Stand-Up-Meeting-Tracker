@@ -11,7 +11,7 @@
     "seed": "node server/src/scripts/seed.js",
     "backup": "node server/src/scripts/backup.js",
     "test": "node server/test/credentialProvision.test.js",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "node node_modules/prisma/build/index.js generate"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.16",
