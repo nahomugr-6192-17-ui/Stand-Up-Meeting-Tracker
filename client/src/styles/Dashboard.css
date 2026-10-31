@@ -1,0 +1,194 @@
+.dashboard-container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 40px 24px 100px;
+  min-height: calc(100vh - 72px);
+  position: relative;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.dashboard-title-group h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #FFFFFF;
+}
+
+.dashboard-title-group p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+.meetings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Horizontal Rectangular Meeting Card */
+.meeting-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-muted);
+  padding: 18px 24px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+
+.meeting-card:hover {
+  background-color: #333031;
+  border-color: var(--border-strong);
+}
+
+.meeting-card-content {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex: 1;
+}
+
+.meeting-card-date {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  min-width: 110px;
+}
+
+.meeting-card-title {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  color: #FFFFFF;
+}
+
+.meeting-card-status-draft {
+  background-color: rgba(123, 59, 59, 0.4);
+  border: 1px solid var(--accent-danger);
+  color: #FFA3A3;
+  font-family: var(--font-heading);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+}
+
+.meeting-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.card-nav-arrow {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.meeting-card:hover .card-nav-arrow {
+  color: #FFFFFF;
+  transform: translateX(4px);
+}
+
+.card-delete-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #7B3B3B;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.card-delete-btn:hover {
+  background-color: var(--accent-danger);
+  color: #FFFFFF;
+}
+
+/* Floating Add Meeting Button */
+.floating-add-btn {
+  position: fixed;
+  bottom: 36px;
+  right: 36px;
+  width: 56px;
+  height: 56px;
+  background-color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.8);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  z-index: 400;
+}
+
+.floating-add-btn:hover {
+  background-color: #799799;
+  transform: translateY(-2px);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: var(--bg-secondary);
+  border: 1px dashed var(--border-muted);
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-state-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .dashboard-container {
+    padding: 24px 16px 90px;
+  }
+
+  .meeting-card-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .meeting-card-date {
+    font-size: 11px;
+  }
+
+  .meeting-card-title {
+    font-size: 14px;
+  }
+
+  .floating-add-btn {
+    bottom: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+  }
+}
+

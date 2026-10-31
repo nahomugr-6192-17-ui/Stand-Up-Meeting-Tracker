@@ -1,0 +1,32 @@
+{
+  "name": "muqecha-studios-standup-tracker",
+  "version": "1.0.0",
+  "description": "Muqecha Studios — Private Stand-up Meeting Management System",
+  "scripts": {
+    "start": "node server/src/index.js",
+    "server": "node server/src/index.js",
+    "client": "vite client",
+    "build": "vite build client",
+    "seed": "node -e \"require('./server/src/services/db').seedDefaultUsers().then(() => console.log('Seeded successfully'))\"",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@better-auth/infra": "^0.4.25",
+    "@electric-sql/pglite": "^0.2.16",
+    "@prisma/client": "^7.10.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "bcryptjs": "^2.4.3",
+    "better-auth": "^1.7.14",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "lucide-react": "^0.475.0",
+    "pg": "^8.13.3",
+    "prisma": "^7.10.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0",
+    "vite": "^6.2.0"
+  }
+}

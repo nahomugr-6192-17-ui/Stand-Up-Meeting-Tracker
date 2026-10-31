@@ -1,0 +1,120 @@
+.participant-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.participant-detail-row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+  align-items: start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(102, 130, 132, 0.2);
+}
+
+.participant-detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.participant-detail-label {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  padding-top: 2px;
+}
+
+.participant-detail-value {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: #FFFFFF;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.rating-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* Edit mode input controls inside modal */
+.modal-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.modal-edit-field {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.modal-edit-field .form-label {
+  padding-top: 10px;
+}
+
+.rating-selector-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.rating-chip-btn {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-muted);
+  color: var(--text-secondary);
+  font-family: var(--font-heading);
+  font-size: 12px;
+  font-weight: 500;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rating-chip-btn:hover {
+  border-color: var(--border-strong);
+  color: #FFFFFF;
+}
+
+.rating-chip-btn.active {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.date-time-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .participant-detail-row,
+  .modal-edit-field {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .date-time-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+

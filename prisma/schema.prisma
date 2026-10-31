@@ -1,0 +1,107 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  TEAM
+}
+
+enum MeetingStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  username      String    @unique
+  role          Role      @default(TEAM)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(uuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+model Meeting {
+  id              String          @id @default(uuid())
+  title           String
+  meetingDate     DateTime
+  nextMeetingDate DateTime?
+  status          MeetingStatus   @default(DRAFT)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  records         MeetingRecord[]
+
+  @@map("meeting")
+}
+
+model MeetingRecord {
+  id                   String   @id @default(uuid())
+  meetingId            String
+  meeting              Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  name                 String
+  workSinceLastStandup String   @default("")
+  workRating           Int      @default(5)
+  nextStandupWork      String   @default("")
+  description          String   @default("")
+  acceptanceCriteria   String   @default("")
+  questionsFromMembers String   @default("")
+  taskAssignment       String   @default("")
+  timeDateEstimate     String?
+  sortOrder            Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("meeting_record")
+}
