@@ -10,6 +10,7 @@
     "build": "vite build client",
     "seed": "node server/src/scripts/seed.js",
     "backup": "node server/src/scripts/backup.js",
+    "test": "node server/test/credentialProvision.test.js",
     "prisma:generate": "prisma generate"
   },
   "dependencies": {
