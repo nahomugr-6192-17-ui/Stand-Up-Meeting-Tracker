@@ -44,11 +44,12 @@ export const auth = betterAuth({
 
   trustedOrigins: [
     config.CLIENT_URL,
+    config.BETTER_AUTH_URL,
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:5000',
     'http://127.0.0.1:5000'
-  ],
+  ].filter(Boolean),
 
   rateLimit: {
     window: 60, // 60 seconds

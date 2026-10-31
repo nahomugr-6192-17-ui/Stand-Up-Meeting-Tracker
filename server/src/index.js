@@ -22,11 +22,12 @@ app.set('trust proxy', 1);
 // Configure CORS with credentials for trusted origins
 const allowedOrigins = [
   config.CLIENT_URL,
+  config.BETTER_AUTH_URL,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:5000',
   'http://127.0.0.1:5000'
-];
+].filter(Boolean);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -96,7 +97,7 @@ export async function startServer() {
     // Seed sample meeting if none exists
     await seedSampleMeeting();
 
-    const server = app.listen(config.PORT, () => {
+    const server = app.listen(config.PORT, '0.0.0.0', () => {
       console.log(`=======================================================`);
       console.log(` Muqecha Studios — Stand-up Meeting Management System`);
       console.log(` Authentication: Better Auth (Username Plugin)`);
