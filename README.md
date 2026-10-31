@@ -95,10 +95,10 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/muqecha_standup?schem
 
 # Provisioned Accounts
 TEAM_USERNAME=Muqecha Team
-TEAM_PASSWORD=wegachbeteseb007#
+TEAM_PASSWORD=weqachbeteseb007#
 
 ADMIN_USERNAME=Muqecha Admin
-ADMIN_PASSWORD=wegachadmin007#
+ADMIN_PASSWORD=weqachOGadmin007#
 ```
 
 ---
@@ -134,10 +134,10 @@ The application automatically seeds the two initial accounts upon startup based 
 
 - **Muqecha Team** (Read-Only)
   - Default Username: `Muqecha Team`
-  - Default Password: `wegachbeteseb007#`
+  - Default Password: `weqachbeteseb007#`
 - **Muqecha Admin** (Full Management)
   - Default Username: `Muqecha Admin`
-  - Default Password: `wegachadmin007#`
+  - Default Password: `weqachOGadmin007#`
 
 To manually run the seed script at any time:
 

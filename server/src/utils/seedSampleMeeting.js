@@ -1,9 +1,9 @@
-const db = require('../services/db');
+import db from '../services/db.js';
 
-async function seedSampleMeeting() {
+export async function seedSampleMeeting() {
   const existing = await db.meetings.findMany({ role: 'ADMIN' });
   if (existing.length > 0) {
-    return; // Already has meetings
+    return;
   }
 
   console.log('[SEED] Seeding initial sample stand-up meeting...');
@@ -45,12 +45,12 @@ async function seedSampleMeeting() {
       },
       {
         name: 'Yonas Kassa',
-        workSinceLastStandup: 'Implemented secure session auth with RBAC and PostgreSQL persistence.',
+        workSinceLastStandup: 'Implemented Better Auth username authentication and RBAC with PostgreSQL.',
         workRating: 9,
-        nextStandupWork: 'Set up automated data backups and rate-limiting monitoring.',
-        description: 'Built atomic multi-table transactions for saving meetings and participant records.',
-        acceptanceCriteria: 'Database transactions roll back safely if validation fails.',
-        questionsFromMembers: 'Will test under high concurrent load next Monday.',
+        nextStandupWork: 'Set up automated data backups and session monitor.',
+        description: 'Integrated official Better Auth Prisma adapter and custom username plugin allowing spaces.',
+        acceptanceCriteria: 'Authentication session cookies persist across browser reloads.',
+        questionsFromMembers: 'Will test with lead admin on Monday.',
         taskAssignment: 'SEC-310',
         timeDateEstimate: '2026-11-02T11:30:00'
       }
@@ -60,5 +60,4 @@ async function seedSampleMeeting() {
   console.log('[SEED] Initial sample stand-up meeting published successfully!');
 }
 
-module.exports = seedSampleMeeting;
-
+export default seedSampleMeeting;

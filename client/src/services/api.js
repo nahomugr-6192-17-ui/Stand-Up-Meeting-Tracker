@@ -38,21 +38,6 @@ async function request(endpoint, options = {}) {
   return data;
 }
 
-export const authApi = {
-  login: (credentials) =>
-    request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials)
-    }),
-
-  logout: () =>
-    request('/auth/logout', {
-      method: 'POST'
-    }),
-
-  getMe: () => request('/auth/me')
-};
-
 export const meetingsApi = {
   getMeetings: () => request('/meetings'),
 

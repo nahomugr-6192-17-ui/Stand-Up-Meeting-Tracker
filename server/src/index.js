@@ -1,52 +1,66 @@
-const fs = require('fs');
-const path = require('path');
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const config = require('./config/env');
-const db = require('./services/db');
-const authRoutes = require('./routes/authRoutes');
-const meetingRoutes = require('./routes/meetingRoutes');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { toNodeHandler } from 'better-auth/node';
+
+import config from './config/env.js';
+import { auth } from './auth.js';
+import { provisionInitialAccounts } from './scripts/seed.js';
+import { seedSampleMeeting } from './utils/seedSampleMeeting.js';
+import meetingRoutes from './routes/meetingRoutes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Trust proxy for secure cookie handling behind reverse proxies
 app.set('trust proxy', 1);
 
-// Middleware
+// Configure CORS with credentials for trusted origins
 const allowedOrigins = [
   config.CLIENT_URL,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000'
+  'http://localhost:5000',
+  'http://127.0.0.1:5000'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, server-to-server)
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Permissive in local dev, restricted via credentials check
+      callback(new Error(`CORS blocked for origin: ${origin}`));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie']
 }));
 
+// CRITICAL: Mount Better Auth handler BEFORE express.json()
+app.all('/api/auth/*', toNodeHandler(auth));
+app.all('/api/auth', toNodeHandler(auth));
+
+// Body parsing middleware for standard application endpoints
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser(config.COOKIE_SECRET));
+app.use(cookieParser());
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'Muqecha Studios Stand-up API', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: 'ok',
+    service: 'Muqecha Studios Stand-up API',
+    auth: 'Better Auth',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
+// Protected meeting routes
 app.use('/api/meetings', meetingRoutes);
 
 // Serve client static files if built
@@ -68,22 +82,24 @@ app.use('/api', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('[SERVER UNHANDLED ERROR]', err);
+  console.error('[SERVER ERROR]', err);
   res.status(err.status || 500).json({
     error: err.message || 'An unexpected server error occurred.'
   });
 });
 
-async function startServer() {
+export async function startServer() {
   try {
-    // Seed default accounts and sample data
-    await db.seedDefaultUsers();
-    const seedSampleMeeting = require('./utils/seedSampleMeeting');
+    // Provision initial ADMIN and TEAM accounts
+    await provisionInitialAccounts();
+
+    // Seed sample meeting if none exists
     await seedSampleMeeting();
 
     const server = app.listen(config.PORT, () => {
       console.log(`=======================================================`);
       console.log(` Muqecha Studios — Stand-up Meeting Management System`);
+      console.log(` Authentication: Better Auth (Username Plugin)`);
       console.log(` Server running on port ${config.PORT}`);
       console.log(` Health check: http://localhost:${config.PORT}/api/health`);
       console.log(`=======================================================`);
@@ -96,8 +112,9 @@ async function startServer() {
   }
 }
 
-if (require.main === module) {
+if (process.argv[1] && process.argv[1].endsWith('index.js')) {
   startServer();
 }
 
-module.exports = { app, startServer };
+export { app };
+export default app;

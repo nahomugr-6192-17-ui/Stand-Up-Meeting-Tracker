@@ -1,6 +1,6 @@
-const db = require('../services/db');
+import db from '../services/db.js';
 
-const meetingController = {
+export const meetingController = {
   // GET /api/meetings
   getMeetings: async (req, res) => {
     try {
@@ -160,5 +160,4 @@ const meetingController = {
   }
 };
 
-module.exports = meetingController;
-
+export default meetingController;

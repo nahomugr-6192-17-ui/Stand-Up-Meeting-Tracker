@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import meetingController from '../controllers/meetingController.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
+
 const router = express.Router();
-const meetingController = require('../controllers/meetingController');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 // All meeting routes require authenticated session
 router.use(requireAuth);
@@ -15,5 +16,4 @@ router.post('/', requireAdmin, meetingController.createMeeting);
 router.put('/:id', requireAdmin, meetingController.updateMeeting);
 router.delete('/:id', requireAdmin, meetingController.deleteMeeting);
 
-module.exports = router;
-
+export default router;

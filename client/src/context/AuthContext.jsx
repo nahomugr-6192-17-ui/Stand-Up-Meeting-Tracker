@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { authApi } from '../services/api';
+import { authClient } from '../lib/auth-client';
 
 const AuthContext = createContext(null);
 
@@ -7,31 +7,53 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const data = await authApi.getMe();
-        if (data && data.user) {
-          setUser(data.user);
-        }
-      } catch (err) {
+  const checkSession = async () => {
+    try {
+      const res = await authClient.getSession();
+      if (res && res.data && res.data.user) {
+        setUser(res.data.user);
+      } else {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-    checkAuth();
+  };
+
+  useEffect(() => {
+    checkSession();
   }, []);
 
   const login = async (username, password) => {
-    const data = await authApi.login({ username, password });
-    setUser(data.user);
-    return data.user;
+    const { data, error } = await authClient.signIn.username({
+      username: username.trim(),
+      password
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Invalid username or password.');
+    }
+
+    if (data?.user) {
+      setUser(data.user);
+      return data.user;
+    }
+
+    // Refresh and fetch active session
+    const sessionRes = await authClient.getSession();
+    if (sessionRes?.data?.user) {
+      setUser(sessionRes.data.user);
+      return sessionRes.data.user;
+    }
+
+    throw new Error('Authentication succeeded but session could not be established.');
   };
 
   const logout = async () => {
     try {
-      await authApi.logout();
+      await authClient.signOut();
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -40,7 +62,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, setUser, checkSession }}>
       {children}
     </AuthContext.Provider>
   );
@@ -53,4 +75,3 @@ export function useAuth() {
   }
   return context;
 }
-

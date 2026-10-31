@@ -15,6 +15,8 @@ node_modules/
 # Persistent local database & data directories
 /data
 /server/data
+/backups
+*.sql
 *.db
 *.sqlite
 

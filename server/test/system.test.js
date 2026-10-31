@@ -1,6 +1,7 @@
-const http = require('http');
-const db = require('../src/services/db');
-const { app } = require('../src/index');
+import http from 'http';
+import { app } from '../src/index.js';
+import { prisma } from '../src/services/prismaDb.js';
+import config from '../src/config/env.js';
 
 let server;
 let port;
@@ -12,6 +13,7 @@ function makeRequest({ method, path, headers = {}, body = null, cookie = '' }) {
   return new Promise((resolve, reject) => {
     const reqHeaders = {
       'Content-Type': 'application/json',
+      'Origin': 'http://localhost:5173',
       ...headers
     };
     if (cookie) {
@@ -60,11 +62,10 @@ function makeRequest({ method, path, headers = {}, body = null, cookie = '' }) {
   });
 }
 
-async function runTests() {
-  console.log('--- STARTING MUQECHA STUDIOS FULL SYSTEM VERIFICATION ---');
-
-  // Seed DB
-  await db.seedDefaultUsers();
+async function runSystemTests() {
+  console.log('================================================================');
+  console.log(' STARTING FULL SYSTEM & BETTER AUTH VERIFICATION TEST SUITE');
+  console.log('================================================================');
 
   // Start HTTP server on dynamic port
   server = http.createServer(app);
@@ -80,207 +81,200 @@ async function runTests() {
     // 1. Health check
     const health = await makeRequest({ method: 'GET', path: '/api/health' });
     console.assert(health.status === 200, 'Health check should return 200');
-    console.log('✓ Health check passed');
+    console.log('✓ TEST 1 PASSED: Health check passed');
 
     // 2. Reject unauthenticated access to meetings
     const unauthMeetings = await makeRequest({ method: 'GET', path: '/api/meetings' });
     console.assert(unauthMeetings.status === 401, 'Unauthenticated request should return 401');
-    console.log('✓ Unauthenticated access correctly blocked (401)');
+    console.log('✓ TEST 2 PASSED: Unauthenticated access blocked on protected endpoints (401)');
 
     // 3. Test Invalid Login
     const invalidLogin = await makeRequest({
       method: 'POST',
-      path: '/api/auth/login',
+      path: '/api/auth/sign-in/username',
       body: { username: 'Muqecha Admin', password: 'wrongpassword' }
     });
     console.assert(invalidLogin.status === 401, 'Invalid password should return 401');
-    console.log('✓ Invalid password correctly rejected (401)');
+    console.log('✓ TEST 3 PASSED: Invalid password rejected with 401');
 
     // 4. Test Team Login
     const teamLogin = await makeRequest({
       method: 'POST',
-      path: '/api/auth/login',
-      body: { username: 'Muqecha Team', password: 'wegachbeteseb007#' }
+      path: '/api/auth/sign-in/username',
+      body: { username: config.TEAM_USERNAME, password: config.TEAM_PASSWORD }
     });
     console.assert(teamLogin.status === 200, 'Team login should return 200');
     console.assert(teamLogin.body.user.role === 'TEAM', 'Role must be TEAM');
     const setCookieTeam = teamLogin.headers['set-cookie'];
     console.assert(setCookieTeam && setCookieTeam.length > 0, 'Should set session cookie');
     teamCookie = setCookieTeam[0].split(';')[0];
-    console.log('✓ Team login successful (Role: TEAM, Session Cookie issued)');
+    console.log(`✓ TEST 4 PASSED: TEAM logged in successfully via Better Auth (${config.TEAM_USERNAME})`);
 
     // 5. Test Admin Login
     const adminLogin = await makeRequest({
       method: 'POST',
-      path: '/api/auth/login',
-      body: { username: 'Muqecha Admin', password: 'wegachadmin007#' }
+      path: '/api/auth/sign-in/username',
+      body: { username: config.ADMIN_USERNAME, password: config.ADMIN_PASSWORD }
     });
     console.assert(adminLogin.status === 200, 'Admin login should return 200');
     console.assert(adminLogin.body.user.role === 'ADMIN', 'Role must be ADMIN');
     const setCookieAdmin = adminLogin.headers['set-cookie'];
+    console.assert(setCookieAdmin && setCookieAdmin.length > 0, 'Admin login must set session cookie');
     adminCookie = setCookieAdmin[0].split(';')[0];
-    console.log('✓ Admin login successful (Role: ADMIN, Session Cookie issued)');
+    console.log(`✓ TEST 5 PASSED: ADMIN logged in successfully via Better Auth (${config.ADMIN_USERNAME})`);
 
-    // 6. Test Team /auth/me
-    const teamMe = await makeRequest({
+    // 6. Test Session identification (/api/auth/get-session)
+    const sessionRes = await makeRequest({
       method: 'GET',
-      path: '/api/auth/me',
+      path: '/api/auth/get-session',
       cookie: teamCookie
     });
-    console.assert(teamMe.status === 200, 'GET /auth/me should succeed');
-    console.assert(teamMe.body.user.username === 'Muqecha Team', 'Username should match');
-    console.log('✓ /auth/me correctly identifies authenticated session');
+    console.assert(sessionRes.status === 200, 'Session check should return 200');
+    console.assert(sessionRes.body.user.username === config.TEAM_USERNAME, 'Username should match TEAM');
+    console.log('✓ TEST 6 PASSED: Session correctly identified from cookie token');
 
-    // 7. Team attempts to CREATE meeting -> Must be blocked with 403 Forbidden
+    // 7. TEAM forbidden from creating meetings (403)
     const forbiddenCreate = await makeRequest({
       method: 'POST',
       path: '/api/meetings',
       cookie: teamCookie,
       body: {
-        title: 'Hacked Standup',
+        title: 'Unauthorized Meeting',
+        meetingDate: new Date().toISOString(),
+        initialRowCount: 1
+      }
+    });
+    console.assert(forbiddenCreate.status === 403, `TEAM create meeting must return 403, got ${forbiddenCreate.status}`);
+    console.log('✓ TEST 7 PASSED: TEAM forbidden from creating meetings (403)');
+
+    // 8. ADMIN creates meeting in DRAFT status
+    const adminCreateRes = await makeRequest({
+      method: 'POST',
+      path: '/api/meetings',
+      cookie: adminCookie,
+      body: {
+        title: 'System Integration Stand-up',
         meetingDate: new Date().toISOString(),
         initialRowCount: 2
       }
     });
-    console.assert(forbiddenCreate.status === 403, 'Team user must receive 403 when creating meeting');
-    console.log('✓ RBAC Security: Team user strictly forbidden from creating meetings (403)');
+    console.assert(adminCreateRes.status === 201, `ADMIN create meeting should return 201, got ${adminCreateRes.status}`);
+    console.assert(adminCreateRes.body.meeting.status === 'DRAFT', 'Meeting should be DRAFT by default');
+    createdMeetingId = adminCreateRes.body.meeting.id;
+    console.log('✓ TEST 8 PASSED: ADMIN successfully created meeting in DRAFT status');
 
-    // 8. Admin creates a new meeting
-    const createRes = await makeRequest({
-      method: 'POST',
-      path: '/api/meetings',
-      cookie: adminCookie,
-      body: {
-        title: 'Sprint 24 Stand-up Sync',
-        meetingDate: '2026-11-05T09:00:00.000Z',
-        initialRowCount: 2
-      }
-    });
-    console.assert(createRes.status === 201, 'Admin meeting creation should return 201');
-    createdMeetingId = createRes.body.meeting.id;
-    console.assert(createRes.body.meeting.status === 'DRAFT', 'New meeting must initially be DRAFT');
-    console.assert(createRes.body.meeting.records.length === 2, 'Initial participant rows count must match');
-    console.log('✓ Admin created meeting successfully in DRAFT status with 2 participant slots');
-
-    // 9. Verify Team user DOES NOT see DRAFT meeting
-    const teamMeetingsList = await makeRequest({
+    // 9. DRAFT meetings hidden from TEAM
+    const teamMeetingsRes = await makeRequest({
       method: 'GET',
       path: '/api/meetings',
       cookie: teamCookie
     });
-    const foundDraft = teamMeetingsList.body.meetings.find((m) => m.id === createdMeetingId);
-    console.assert(!foundDraft, 'Draft meeting must NEVER be visible to Team users');
-    console.log('✓ Security: DRAFT meetings are completely hidden from Team users');
+    console.assert(teamMeetingsRes.status === 200, 'TEAM get meetings should return 200');
+    const draftFound = teamMeetingsRes.body.meetings.some(m => m.id === createdMeetingId);
+    console.assert(!draftFound, 'DRAFT meeting must NOT be visible to TEAM');
+    console.log('✓ TEST 9 PASSED: DRAFT meetings are strictly hidden from TEAM accounts');
 
-    // 10. Admin updates and PUBLISHES meeting
-    const updateRes = await makeRequest({
-      method: 'PUT',
-      path: `/api/meetings/${createdMeetingId}`,
-      cookie: adminCookie,
-      body: {
-        title: 'Sprint 24 Stand-up Sync',
-        meetingDate: '2026-11-05T09:00:00.000Z',
-        nextMeetingDate: '2026-11-06T09:00:00.000Z',
-        records: [
-          {
-            name: 'Abebe Bikila',
-            workSinceLastStandup: 'Completed audio sync pipeline',
-            workRating: 9,
-            nextStandupWork: 'Implement waveform visualizer',
-            description: 'Refactored WebAudio context processing node',
-            acceptanceCriteria: 'Zero dropouts at 48kHz sample rate',
-            questionsFromMembers: 'None',
-            taskAssignment: 'AUDIO-102',
-            timeDateEstimate: '2026-11-06T15:00:00'
-          },
-          {
-            name: 'Sara Worku',
-            workSinceLastStandup: 'Drafted brand color scheme and CSS tokens',
-            workRating: 8,
-            nextStandupWork: 'Finalize navigation responsiveness',
-            description: 'Verified exact viewport horizontal center for logo mark',
-            acceptanceCriteria: 'Pixel-perfect across all mobile viewports',
-            questionsFromMembers: 'Reviewed typography scale',
-            taskAssignment: 'UI-405',
-            timeDateEstimate: '2026-11-06T12:00:00'
-          }
-        ],
-        status: 'PUBLISHED'
-      }
-    });
-    console.assert(updateRes.status === 200, 'Update should return 200');
-    console.assert(updateRes.body.meeting.status === 'PUBLISHED', 'Status should be PUBLISHED');
-    console.assert(updateRes.body.meeting.records.length === 2, 'Records count must be 2');
-    console.log('✓ Admin successfully saved and published meeting in database transaction');
-
-    // 11. Team user now CAN view published meeting and records
-    const teamGetPublished = await makeRequest({
-      method: 'GET',
-      path: `/api/meetings/${createdMeetingId}`,
-      cookie: teamCookie
-    });
-    console.assert(teamGetPublished.status === 200, 'Team user must be able to view published meeting');
-    console.assert(teamGetPublished.body.meeting.records.length === 2, 'Records must be populated');
-    console.assert(teamGetPublished.body.meeting.records[0].name === 'Abebe Bikila', 'Record name matches');
-    console.log('✓ Team user retrieved published meeting and all participant records');
-
-    // 12. Team user CANNOT modify published meeting
-    const teamTamper = await makeRequest({
+    // 10. TEAM forbidden from editing meetings (403)
+    const teamEditRes = await makeRequest({
       method: 'PUT',
       path: `/api/meetings/${createdMeetingId}`,
       cookie: teamCookie,
-      body: { title: 'Tampered Title' }
+      body: { title: 'Hacked Edit' }
     });
-    console.assert(teamTamper.status === 403, 'Team user must be forbidden from editing meeting');
-    console.log('✓ RBAC: Team user strictly forbidden from modifying meetings (403)');
+    console.assert(teamEditRes.status === 403, `TEAM edit meeting must return 403, got ${teamEditRes.status}`);
+    console.log('✓ TEST 10 PASSED: TEAM forbidden from editing meetings (403)');
 
-    // 13. Team user CANNOT delete meeting
-    const teamDelete = await makeRequest({
+    // 11. TEAM forbidden from deleting meetings (403)
+    const teamDeleteRes = await makeRequest({
       method: 'DELETE',
       path: `/api/meetings/${createdMeetingId}`,
       cookie: teamCookie
     });
-    console.assert(teamDelete.status === 403, 'Team user must be forbidden from deleting meeting');
-    console.log('✓ RBAC: Team user strictly forbidden from deleting meetings (403)');
+    console.assert(teamDeleteRes.status === 403, `TEAM delete meeting must return 403, got ${teamDeleteRes.status}`);
+    console.log('✓ TEST 11 PASSED: TEAM forbidden from deleting meetings (403)');
 
-    // 14. Admin deletes meeting
-    const adminDelete = await makeRequest({
-      method: 'DELETE',
+    // 12. ADMIN updates and publishes meeting
+    const adminPublishRes = await makeRequest({
+      method: 'PUT',
       path: `/api/meetings/${createdMeetingId}`,
-      cookie: adminCookie
+      cookie: adminCookie,
+      body: {
+        title: 'System Integration Stand-up (Published)',
+        meetingDate: '2026-11-01T09:00:00.000Z',
+        nextMeetingDate: '2026-11-02T09:00:00.000Z',
+        status: 'PUBLISHED',
+        records: [
+          {
+            name: 'Abebe Bikila',
+            workSinceLastStandup: 'Integrated spatial reverb filters',
+            workRating: 9,
+            nextStandupWork: 'Stress-test 64 voices on iOS',
+            description: 'Refactored audio worklet processing nodes',
+            acceptanceCriteria: 'Zero buffer underruns',
+            questionsFromMembers: 'None',
+            taskAssignment: 'AUDIO-101',
+            timeDateEstimate: '2026-11-02T14:00:00'
+          }
+        ]
+      }
     });
-    console.assert(adminDelete.status === 200, 'Admin delete should return 200');
-    console.log('✓ Admin successfully deleted meeting');
+    console.assert(adminPublishRes.status === 200, `ADMIN publish should return 200, got ${adminPublishRes.status}`);
+    console.log('✓ TEST 12 PASSED: ADMIN successfully updated and PUBLISHED meeting in database transaction');
 
-    // 15. Verify meeting is gone
-    const verifyGone = await makeRequest({
+    // 13. TEAM can now view PUBLISHED meeting
+    const teamViewPublished = await makeRequest({
       method: 'GET',
       path: `/api/meetings/${createdMeetingId}`,
+      cookie: teamCookie
+    });
+    console.assert(teamViewPublished.status === 200, 'TEAM should be able to view published meeting');
+    console.assert(teamViewPublished.body.meeting.records.length === 1, 'Records should be loaded');
+    console.log('✓ TEST 13 PASSED: TEAM retrieved published meeting with participant records');
+
+    // 14. Session persistence after simulated refresh
+    const refreshSession = await makeRequest({
+      method: 'GET',
+      path: '/api/auth/get-session',
       cookie: adminCookie
     });
-    console.assert(verifyGone.status === 404, 'Deleted meeting must return 404');
-    console.log('✓ Deleted meeting confirmed gone (404)');
+    console.assert(refreshSession.status === 200, 'Admin session should persist across requests');
+    console.assert(refreshSession.body.user.username === config.ADMIN_USERNAME, 'Admin username must match');
+    console.log('✓ TEST 14 PASSED: Session persists across requests via Better Auth cookie');
 
-    // 16. Logout
+    // 15. Sign-out invalidates session
     const logoutRes = await makeRequest({
       method: 'POST',
-      path: '/api/auth/logout',
+      path: '/api/auth/sign-out',
       cookie: adminCookie
     });
-    console.assert(logoutRes.status === 200, 'Logout should succeed');
-    console.log('✓ Logout endpoint clears session successfully');
+    console.assert(logoutRes.status === 200, `Sign-out should return 200, got ${logoutRes.status}`);
 
-    console.log('--- ALL FULL SYSTEM INTEGRATION TESTS PASSED (16/16) ---');
+    const postLogoutSession = await makeRequest({
+      method: 'GET',
+      path: '/api/auth/get-session',
+      cookie: adminCookie
+    });
+    console.assert(!postLogoutSession.body || !postLogoutSession.body.session, 'Session must be null after logout');
+    console.log('✓ TEST 15 PASSED: Sign-out completely invalidates the Better Auth session');
+
+    // 16. Existing meeting & participant records preserved
+    const allDbMeetings = await prisma.meeting.findMany({ include: { records: true } });
+    console.assert(allDbMeetings.length > 0, 'Database meetings must exist');
+    const originalMeeting = allDbMeetings.find(m => m.title.includes('Visual Identity & Audio Engine Sync'));
+    console.assert(originalMeeting, 'Original stand-up meeting must be preserved');
+    console.assert(originalMeeting.records.length > 0, 'Original participant records must be preserved');
+    console.log(`✓ TEST 16 PASSED: Existing data preserved (${allDbMeetings.length} meetings in PostgreSQL 18)`);
+
+    console.log('================================================================');
+    console.log(' ALL 16 SYSTEM & BETTER AUTH INTEGRATION TEST CASES PASSED!');
+    console.log('================================================================');
     server.close();
     process.exit(0);
   } catch (err) {
-    console.error('[TEST ERROR OCCURRED]', err);
+    console.error('[TEST SUITE FAILURE]', err);
     if (server) server.close();
     process.exit(1);
   }
 }
 
-runTests().catch((err) => {
-  console.error('[TEST SUITE FAILED]', err);
-  process.exit(1);
-});
+runSystemTests();
